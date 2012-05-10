@@ -21,6 +21,7 @@
 #include <linux/module.h>
 #include <linux/bootmem.h>
 #include <linux/sort.h>
+#include <linux/slab.h>
 #include <linux/stop_machine.h>
 #include <asm/sections.h>
 #include <asm/uaccess.h>
@@ -32,7 +33,12 @@ extern char __start_unwind[], __end_unwind[];
 // #define UNWIND_DEBUG
 
 #ifdef UNWIND_DEBUG
-#define unw_debug(fmt, ...) printk(fmt, ##__VA_ARGS__)
+int dbg_unw;
+#define unw_debug(fmt, ...)			\
+do {						\
+	if (dbg_unw)				\
+		printk(fmt, ##__VA_ARGS__);	\
+} while (0);
 #else
 #define unw_debug(fmt, ...)
 #endif
@@ -353,6 +359,97 @@ void __init arc_unwind_setup(void)
 {
 	setup_unwind_table(&root_table, balloc);
 }
+
+#ifdef CONFIG_MODULES
+
+static struct unwind_table *last_table;
+
+/* Must be called with module_mutex held. */
+void *unwind_add_table(struct module *module, const void *table_start,
+		       unsigned long table_size)
+{
+	struct unwind_table *table;
+
+	if (table_size <= 0)
+		return NULL;
+
+	table = kmalloc(sizeof(*table), GFP_KERNEL);
+	if (!table)
+		return NULL;
+
+	init_unwind_table(table, module->name,
+			  module->module_core, module->core_size,
+			  module->module_init, module->init_size,
+			  table_start, table_size,
+			  NULL, 0);
+
+#ifdef UNWIND_DEBUG
+	unw_debug("Table added for [%s] %lx %lx\n",
+		module->name, table->core.pc, table->core.range);
+#endif
+	if (last_table)
+		last_table->link = table;
+	else
+		root_table.link = table;
+	last_table = table;
+
+	return table;
+}
+
+struct unlink_table_info {
+	struct unwind_table *table;
+	int init_only;
+};
+
+static int unlink_table(void *arg)
+{
+	struct unlink_table_info *info = arg;
+	struct unwind_table *table = info->table, *prev;
+
+	for (prev = &root_table; prev->link && prev->link != table;
+	     prev = prev->link)
+		;
+
+	if (prev->link) {
+		if (info->init_only) {
+			table->init.pc = 0;
+			table->init.range = 0;
+			info->table = NULL;
+		} else {
+			prev->link = table->link;
+			if (!prev->link)
+				last_table = prev;
+		}
+	} else
+		info->table = NULL;
+
+	return 0;
+}
+
+/* Must be called with module_mutex held. */
+void unwind_remove_table(void *handle, int init_only)
+{
+	struct unwind_table *table = handle;
+	struct unlink_table_info info;
+
+	if (!table || table == &root_table)
+		return;
+
+	if (init_only && table == last_table) {
+		table->init.pc = 0;
+		table->init.range = 0;
+		return;
+	}
+
+	info.table = table;
+	info.init_only = init_only;
+	/* stop_machine_run(unlink_table, &info, NR_CPUS); */
+
+	if (info.table)
+		kfree(table);
+}
+
+#endif /* CONFIG_MODULES */
 
 static uleb128_t get_uleb128(const u8 **pcur, const u8 *end)
 {
@@ -693,7 +790,7 @@ static int processCFI(const u8 *start,
 				break;
 			case DW_CFA_def_cfa:
 				state->cfa.reg = get_uleb128(&ptr.p8, end);
-                unw_debug("cfa_def_cfa: reg: 0x%lx ", state->cfa.reg);
+				unw_debug("cfa_def_cfa: r%lu ", state->cfa.reg);
 				/*nobreak*/
 			case DW_CFA_def_cfa_offset:
 				state->cfa.offs = get_uleb128(&ptr.p8, end);
@@ -730,7 +827,7 @@ static int processCFI(const u8 *start,
 			}
 			break;
 		case 1:
-            unw_debug("\ncfa_advance_loc: ");
+			unw_debug("\ncfa_adv_loc: ");
 			result = advance_loc(*ptr.p8++ & 0x3f, state);
 			break;
 		case 2:
@@ -1032,15 +1129,19 @@ int arc_unwind(struct unwind_frame_info *frame)
 		if (REG_INVALID(i))
 			continue;
 
-        unw_debug(" r%d:", i);
-
         switch(state.regs[i].where)
         {
-            case Nowhere: unw_debug(" s,"); break;
-            case Memory:  unw_debug(" c(%lu),", state.regs[i].value); break;
-            case Register:unw_debug(" r(%lu),", state.regs[i].value); break;
-            case Value:   unw_debug(" v(%lu),", state.regs[i].value); break;
-            default: break;
+	case Nowhere:
+		break;
+	case Memory:
+		unw_debug(" r%d: c(%lu),", i, state.regs[i].value);
+		break;
+	case Register:
+		unw_debug(" r%d: r(%lu),", i, state.regs[i].value);
+		break;
+	case Value:
+		unw_debug(" r%d: v(%lu),", i, state.regs[i].value);
+		break;
         }
     }
 

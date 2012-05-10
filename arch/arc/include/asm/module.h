@@ -14,6 +14,10 @@
 
 struct mod_arch_specific
 {
+#ifdef CONFIG_ARC_STACK_UNWIND
+	void *unw_info;
+	int unw_sec_idx;
+#endif
 };
 
 #define Elf_Shdr	Elf32_Shdr

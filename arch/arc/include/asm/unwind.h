@@ -115,6 +115,9 @@ struct unwind_frame_info
 extern int arc_unwind(struct unwind_frame_info *frame);
 extern void arc_unwind_init(void);
 extern void arc_unwind_setup(void);
+extern void *unwind_add_table(struct module *module, const void *table_start,
+			      unsigned long table_size);
+extern void unwind_remove_table(void *handle, int init_only);
 
 static inline int arch_unwind_init_running(struct unwind_frame_info *info,
                     asmlinkage int (*callback)(struct unwind_frame_info *info,
@@ -147,6 +150,8 @@ static inline void arch_unw_init_frame_info(struct unwind_frame_info *info,
 
 static inline void arc_unwind_init(void) {}
 static inline void arc_unwind_setup(void) {}
+#define unwind_add_table(a, b, c)
+#define unwind_remove_table(a, b)
 
 #endif
 
