@@ -1274,3 +1274,12 @@ __syscall_end:
                 .long   SYMBOL_NAME(sys_ni_syscall)
         .endr
 ARC_EXIT sys_call_table
+
+#ifdef CONFIG_ARC_STACK_UNWIND
+; Workaround for bug 94179 (STAR ):
+; Despite -fasynchronous-unwind-tables, linker is not making dwarf2 unwinder
+; section (.debug_frame) as loadable. So we force it here.
+; This also fixes STAR 9000487933 where the prev-workaround (objcopy --setflag)
+; would not work after a clean build due to kernel build system dependencies.
+.section .debug_frame, "wa",@progbits
+#endif

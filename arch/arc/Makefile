@@ -106,7 +106,7 @@ KBUILD_IMAGE := bootpImage
 
 all:	$(KBUILD_IMAGE)
 
-bootpImage uImage: objconvert vmlinux
+bootpImage uImage: vmlinux
 
 archclean:
 	$(Q)$(MAKE) $(clean)=$(boot)
@@ -120,16 +120,6 @@ define arc-create-symlink
 	@echo 'SYMLINK arch/arc/include/asm/board -> ${src}/arch/arc/include/asm/board-$(PLATFORM)'; \
 	ln -fsn board-$(PLATFORM) ${src}/arch/arc/include/asm/board;
 endef
-
-# work around for bug 94179: force some object file to have load,alloc flags
-# set for the debug_frame section
-
-ifdef CONFIG_ARC_STACK_UNWIND
-objconvert: init/do_mounts.o
-	$(Q) $(OBJCOPY) --set-section-flags .debug_frame=load,alloc init/do_mounts.o init/do_mounts.o
-else
-objconvert:
-endif
 
 # vineetg Feb 2010:
 # We switched to -mno-long-calls for overall kernel build
