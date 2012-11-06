@@ -117,3 +117,204 @@ SYSCALL_DEFINE0(arc_gettls)
 {
 	return task_thread_info(current)->thr_ptr;
 }
+
+static inline void arch_idle(void)
+{
+	__asm__("sleep");
+}
+
+void cpu_idle(void)
+{
+	/* Since we SLEEP in idle loop, TIF_POLLING_NRFLAG can't be set */
+
+	/* endless idle loop with no priority at all */
+	while (1) {
+		tick_nohz_idle_enter();
+
+		while (!need_resched())
+			arch_idle();
+
+		tick_nohz_idle_exit();
+
+		preempt_enable_no_resched();
+		schedule();
+		preempt_disable();
+	}
+}
+
+void kernel_thread_helper(void)
+{
+	__asm__ __volatile__(
+		"mov   r0, r2	\n\t"
+		"mov   r1, r3	\n\t"
+		"j     [r1]	\n\t");
+}
+
+int kernel_thread(int (*fn) (void *), void *arg, unsigned long flags)
+{
+	struct pt_regs regs;
+
+	memset(&regs, 0, sizeof(regs));
+
+	regs.r2 = (unsigned long)arg;
+	regs.r3 = (unsigned long)fn;
+	regs.blink = (unsigned long)do_exit;
+	regs.ret = (unsigned long)kernel_thread_helper;
+	regs.status32 = read_aux_reg(0xa);
+
+	/* Ok, create the new process.. */
+	return do_fork(flags | CLONE_VM | CLONE_UNTRACED, 0, &regs, 0, NULL,
+		       NULL);
+
+}
+EXPORT_SYMBOL(kernel_thread);
+
+asmlinkage void ret_from_fork(void);
+
+/* Layout of Child kernel mode stack as setup at the end of this function is
+ *
+ * |     ...        |
+ * |     ...        |
+ * |    unused      |
+ * |                |
+ * ------------------  <==== top of Stack (thread.ksp)
+ * |   UNUSED 1 word|
+ * ------------------
+ * |     r25        |
+ * ~                ~
+ * |    --to--      |   (CALLEE Regs of user mode)
+ * |     r13        |
+ * ------------------
+ * |     fp         |
+ * |    blink       |   @ret_from_fork
+ * ------------------
+ * |                |
+ * ~                ~
+ * ~                ~
+ * |                |
+ * ------------------
+ * |     r12        |
+ * ~                ~
+ * |    --to--      |   (scratch Regs of user mode)
+ * |     r0         |
+ * ------------------
+ * |   UNUSED 1 word|
+ * ------------------  <===== END of PAGE
+ */
+int copy_thread(unsigned long clone_flags,
+		unsigned long usp, unsigned long topstk,
+		struct task_struct *p, struct pt_regs *regs)
+{
+	struct pt_regs *c_regs;        /* child's pt_regs */
+	unsigned long *childksp;       /* to unwind out of __switch_to() */
+	struct callee_regs *c_callee;  /* child's callee regs */
+	struct callee_regs *parent_callee;  /* paren't callee */
+
+	/* Mark the specific anchors to begin with (see pic above) */
+	c_regs = task_pt_regs(p);
+	childksp = (unsigned long *)c_regs - 2;  /* 2 words for FP/BLINK */
+	c_callee = ((struct callee_regs *)childksp) - 1;
+
+	/*
+	 * At the end of this function, kernel SP is all set for
+	 * switch_to to start unwinding.
+	 * For kernel threads we don't have callee regs, but the stack
+	 * layout nevertheless needs to remain the same
+	 */
+	p->thread.ksp = (unsigned long)c_callee;	/* THREAD_KSP */
+
+	/* Copy parents pt regs on child's kernel mode stack */
+	*c_regs = *regs;
+
+	/* __switch_to expects FP(0), BLINK(return addr) at top of stack */
+	childksp[0] = 0;				/* for POP fp */
+	childksp[1] = (unsigned long)ret_from_fork;	/* for POP blink */
+
+	if (!(user_mode(regs))) {
+		c_regs->sp =
+		    (unsigned long)task_thread_info(p) + (THREAD_SIZE - 4);
+		return 0;
+	}
+
+	/*--------- User Task Only --------------*/
+
+	c_regs->sp = usp;
+	c_regs->r0 = 0;		/* fork returns 0 in child */
+
+	parent_callee = ((struct callee_regs *)regs) - 1;
+	*c_callee = *parent_callee;
+
+	if (unlikely(clone_flags & CLONE_SETTLS)) {
+		/*
+		 * set task's userland tls data ptr from 4th arg
+		 * clone C-lib call is difft from clone sys-call
+		 */
+		task_thread_info(p)->thr_ptr = regs->r3;
+	} else {
+		/* Normal fork case: set parent's TLS ptr in child */
+		task_thread_info(p)->thr_ptr =
+		task_thread_info(current)->thr_ptr;
+	}
+
+	return 0;
+}
+
+/*
+ * Some archs flush debug and FPU info here
+ */
+void flush_thread(void)
+{
+}
+
+/*
+ * Free any architecture-specific thread data structures, etc.
+ */
+void exit_thread(void)
+{
+}
+
+int dump_fpu(struct pt_regs *regs, elf_fpregset_t *fpu)
+{
+	return 0;
+}
+
+/*
+ * API: expected by schedular Code: If thread is sleeping where is that.
+ * What is this good for? it will be always the scheduler or ret_from_fork.
+ * So we hard code that anyways.
+ */
+unsigned long thread_saved_pc(struct task_struct *t)
+{
+	struct pt_regs *regs = task_pt_regs(t);
+	unsigned long blink = 0;
+
+	/*
+	 * If the thread being queried for in not itself calling this, then it
+	 * implies it is not executing, which in turn implies it is sleeping,
+	 * which in turn implies it got switched OUT by the schedular.
+	 * In that case, it's kernel mode blink can reliably retrieved as per
+	 * the picture above (right above pt_regs).
+	 */
+	if (t != current && t->state != TASK_RUNNING)
+		blink = *((unsigned int *)regs - 1);
+
+	return blink;
+}
+
+int elf_check_arch(const struct elf32_hdr *x)
+{
+	unsigned int eflags;
+
+	if (x->e_machine != EM_ARCOMPACT)
+		return 0;
+
+	eflags = x->e_flags;
+	if ((eflags & EF_ARC_OSABI_MSK) < EF_ARC_OSABI_V2) {
+		pr_err("ABI mismatch - you need newer toolchain\n");
+		force_sigsegv(SIGSEGV, current);
+		return 0;
+	}
+
+	return 1;
+}
+EXPORT_SYMBOL(elf_check_arch);
