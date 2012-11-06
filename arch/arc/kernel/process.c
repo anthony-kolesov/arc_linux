@@ -142,22 +142,6 @@ void cpu_idle(void)
 	}
 }
 
-int kernel_thread(int (*fn) (void *), void *arg, unsigned long flags)
-{
-	struct pt_regs regs = {
-		.r0 = (unsigned long)arg,
-		.r1 = (unsigned long)fn
-	};
-
-	regs.status32 = read_aux_reg(0xa);
-
-	/* Ok, create the new process.. */
-	return do_fork(flags | CLONE_VM | CLONE_UNTRACED, 0, &regs, 0, NULL,
-		       NULL);
-
-}
-EXPORT_SYMBOL(kernel_thread);
-
 asmlinkage void ret_from_fork(void);
 asmlinkage void ret_from_kernel_thread(void) __attribute__((noreturn));
 
@@ -192,7 +176,7 @@ asmlinkage void ret_from_kernel_thread(void) __attribute__((noreturn));
  * ------------------  <===== END of PAGE
  */
 int copy_thread(unsigned long clone_flags,
-		unsigned long usp, unsigned long topstk,
+		unsigned long usp, unsigned long arg,
 		struct task_struct *p, struct pt_regs *regs)
 {
 	struct pt_regs *c_regs;        /* child's pt_regs */
@@ -213,10 +197,12 @@ int copy_thread(unsigned long clone_flags,
 	 */
 	p->thread.ksp = (unsigned long)c_callee;	/* THREAD_KSP */
 
-	/* Copy parents pt regs on child's kernel mode stack */
-	*c_regs = *regs;
+	if (unlikely(p->flags & PF_KTHREAD)) {
+		memset(c_regs, 0, sizeof(struct pt_regs));
+		c_regs->r0 = arg; /* argument to kernel thread */
+		c_regs->r1 = usp;  /* function */
+		c_regs->status32 = read_aux_reg(0xa);
 
-	if (!(user_mode(regs))) {
 		c_regs->sp =
 		    (unsigned long)task_thread_info(p) + (THREAD_SIZE - 4);
 
@@ -231,6 +217,9 @@ int copy_thread(unsigned long clone_flags,
 	/* __switch_to expects FP(0), BLINK(return addr) at top of stack */
 	childksp[0] = 0;				/* for POP fp */
 	childksp[1] = (unsigned long)ret_from_fork;	/* for POP blink */
+
+	/* Copy parents pt regs on child's kernel mode stack */
+	*c_regs = *regs;
 
 	c_regs->sp = usp;
 	c_regs->r0 = 0;		/* fork returns 0 in child */
