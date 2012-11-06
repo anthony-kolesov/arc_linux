@@ -38,4 +38,14 @@ void __init plat_init_IRQ(void)
 
 	for (i = 0; i < NR_IRQS; i++)
 		irq_set_chip_and_handler(i, &fpga_chip, handle_level_irq);
+
+	/*
+	 * SMP Hack because UART IRQ hardwired to cpu0 (boot-cpu) but if the
+	 * request_irq() comes from any other CPU, the low level IRQ unamsking
+	 * essential for getting Interrupts won't be enabled on cpu0, locking
+	 * up the UART state machine.
+	 */
+#ifdef CONFIG_SMP
+	arch_unmask_irq(UART0_IRQ);
+#endif
 }

@@ -73,6 +73,11 @@ void __init init_IRQ(void)
 	irq_modify_status(irq, IRQ_NOAUTOEN, 0);
 
 	plat_init_IRQ();
+
+#ifdef CONFIG_SMP
+	/* Master CPU to initialize the IPI framework */
+	arc_platform_smp_init_cpu();
+#endif
 }
 
 /*

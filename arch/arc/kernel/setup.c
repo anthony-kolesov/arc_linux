@@ -79,6 +79,10 @@ void __init setup_arch(char **cmdline_p)
 
 	setup_processor();
 
+#ifdef CONFIG_SMP
+	smp_init_cpus();
+#endif
+
 	setup_arch_memory();
 
 	/* Can be issue if someone passes cmd line arg "ro"

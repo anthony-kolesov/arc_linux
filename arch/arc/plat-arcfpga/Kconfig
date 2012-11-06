@@ -23,6 +23,18 @@ config ARC_BOARD_ML509
 
 endchoice
 
+config ISS_SMP_EXTN
+	bool "ARC SMP Extensions (ISS Models only)"
+	default n
+	select ARC_HAS_IPI
+	help
+	  SMP Extensions to ARC700, in a "simulation only" Model, supported in
+	  ARC ISS (Instruction Set Simulator).
+	  The SMP extensions include:
+	  -IDU (Interrupt Distribution Unit)
+	  -XTL (To enable CPU start/stop/set-PC for another CPU)
+	  It doesn't provide coherent Caches and/or Atomic Ops (LLOCK/SCOND)
+
 config ARC_SERIAL_BAUD
 	int "UART Baud rate"
 	default "115200"
