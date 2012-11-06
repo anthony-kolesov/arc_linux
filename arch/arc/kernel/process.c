@@ -142,24 +142,13 @@ void cpu_idle(void)
 	}
 }
 
-void kernel_thread_helper(void)
-{
-	__asm__ __volatile__(
-		"mov   r0, r2	\n\t"
-		"mov   r1, r3	\n\t"
-		"j     [r1]	\n\t");
-}
-
 int kernel_thread(int (*fn) (void *), void *arg, unsigned long flags)
 {
-	struct pt_regs regs;
+	struct pt_regs regs = {
+		.r0 = (unsigned long)arg,
+		.r1 = (unsigned long)fn
+	};
 
-	memset(&regs, 0, sizeof(regs));
-
-	regs.r2 = (unsigned long)arg;
-	regs.r3 = (unsigned long)fn;
-	regs.blink = (unsigned long)do_exit;
-	regs.ret = (unsigned long)kernel_thread_helper;
 	regs.status32 = read_aux_reg(0xa);
 
 	/* Ok, create the new process.. */
@@ -170,6 +159,7 @@ int kernel_thread(int (*fn) (void *), void *arg, unsigned long flags)
 EXPORT_SYMBOL(kernel_thread);
 
 asmlinkage void ret_from_fork(void);
+asmlinkage void ret_from_kernel_thread(void) __attribute__((noreturn));
 
 /* Layout of Child kernel mode stack as setup at the end of this function is
  *
@@ -226,17 +216,21 @@ int copy_thread(unsigned long clone_flags,
 	/* Copy parents pt regs on child's kernel mode stack */
 	*c_regs = *regs;
 
-	/* __switch_to expects FP(0), BLINK(return addr) at top of stack */
-	childksp[0] = 0;				/* for POP fp */
-	childksp[1] = (unsigned long)ret_from_fork;	/* for POP blink */
-
 	if (!(user_mode(regs))) {
 		c_regs->sp =
 		    (unsigned long)task_thread_info(p) + (THREAD_SIZE - 4);
+
+		/* __switch_to expects FP(0), BLINK(return addr) at top */
+		childksp[0] = 0;			/* fp */
+		childksp[1] = (unsigned long)ret_from_kernel_thread; /* blink */
 		return 0;
 	}
 
 	/*--------- User Task Only --------------*/
+
+	/* __switch_to expects FP(0), BLINK(return addr) at top of stack */
+	childksp[0] = 0;				/* for POP fp */
+	childksp[1] = (unsigned long)ret_from_fork;	/* for POP blink */
 
 	c_regs->sp = usp;
 	c_regs->r0 = 0;		/* fork returns 0 in child */
