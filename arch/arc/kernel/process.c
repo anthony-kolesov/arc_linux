@@ -53,50 +53,6 @@ asmlinkage int sys_clone(unsigned long clone_flags, unsigned long newsp,
 		       child_tidptr);
 }
 
-int sys_execve(const char __user *filenamei, const char __user *__user *argv,
-	       const char __user *__user *envp, struct pt_regs *regs)
-{
-	long error;
-	struct filename *filename;
-
-	filename = getname(filenamei);
-	error = PTR_ERR(filename);
-	if (IS_ERR(filename))
-		goto out;
-
-	error = do_execve(filename->name, argv, envp, regs);
-	putname(filename);
-out:
-	return error;
-}
-
-int kernel_execve(const char *filename, const char *const argv[],
-		  const char *const envp[])
-{
-	/*
-	 * Although the arguments (order, number) to this function are
-	 * same as sys call, we don't need to setup args in regs again.
-	 * However in case mainline kernel changes the order of args to
-	 * kernel_execve, that assumtion will break.
-	 * So to be safe, let gcc know the args for sys call.
-	 * If they match no extra code will be generated
-	 */
-	register int arg2 asm("r1") = (int)argv;
-	register int arg3 asm("r2") = (int)envp;
-
-	register int filenm_n_ret asm("r0") = (int)filename;
-
-	__asm__ __volatile__(
-		"mov   r8, %1	\n\t"
-		"trap0		\n\t"
-		: "+r"(filenm_n_ret)
-		: "i"(__NR_execve), "r"(arg2), "r"(arg3)
-		: "r8", "memory");
-
-	return filenm_n_ret;
-}
-EXPORT_SYMBOL(kernel_execve);
-
 SYSCALL_DEFINE1(arc_settls, void *, user_tls_data_ptr)
 {
 	task_thread_info(current)->thr_ptr = (unsigned int)user_tls_data_ptr;

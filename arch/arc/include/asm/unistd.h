@@ -22,6 +22,8 @@
 #define __ARCH_WANT_SYSCALL_NO_FLAGS
 #define __ARCH_WANT_SYSCALL_OFF_T
 #define __ARCH_WANT_SYSCALL_DEPRECATED
+#define __ARCH_WANT_KERNEL_EXECVE
+#define __ARCH_WANT_SYS_EXECVE
 
 #define sys_mmap2 sys_mmap_pgoff
 

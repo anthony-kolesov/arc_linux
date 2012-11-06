@@ -5,7 +5,6 @@
 
 #include <asm/syscalls.h>
 
-#define sys_execve	sys_execve_wrapper
 #define sys_clone	sys_clone_wrapper
 #define sys_fork	sys_fork_wrapper
 #define sys_vfork	sys_vfork_wrapper

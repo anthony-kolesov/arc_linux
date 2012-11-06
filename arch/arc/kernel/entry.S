@@ -588,15 +588,16 @@ ARC_ENTRY ret_from_kernel_thread
 	j   @sys_exit
 ARC_EXIT ret_from_kernel_thread
 
+; When we land here, pt_regs have already been updated in-place correctly
+; A pointer to them is also passed by kernel_execve, we just need to make sure
+; that SP is set to point to them.
+ARC_ENTRY ret_from_kernel_execve
+	; Force SP to "normal" pt_regs just populated.
+	b.d   ret_from_system_call
+	mov   sp, r0
+ARC_EXIT ret_from_kernel_execve
+
 ;################### Special Sys Call Wrappers ##########################
-
-ARC_ENTRY sys_execve_wrapper
-	; copy pointer to pt_regs as a parameter
-	mov  r3, sp
-	bl  @sys_execve
-
-	b ret_from_system_call
-ARC_EXIT sys_execve_wrapper
 
 ; TBD: call do_fork directly from here
 ARC_ENTRY sys_fork_wrapper
