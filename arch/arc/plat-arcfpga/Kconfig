@@ -30,4 +30,17 @@ config ARC_SERIAL_BAUD
 	help
 	  Baud rate for the ARC UART
 
+# Platform specific IRQ wiring - tied to devices - feeds into ARC arch code
+config ARC_TIMER_LV2
+	bool "High Priority Timer0 IRQ"
+	depends on ARC_COMPACT_IRQ_LEVELS
+	select ARC_IRQ3_LV2
+
+# Timer HAS to be high priority, for any other high priority config
+config ARC_SERIAL_LV2
+	bool "High Priority Serial IRQ"
+	depends on ARC_SERIAL && ARC_TIMER_LV2
+	depends on ARC_COMPACT_IRQ_LEVELS
+	select ARC_IRQ5_LV2
+
 endif
