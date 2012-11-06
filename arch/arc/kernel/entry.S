@@ -10,6 +10,14 @@
  * TBD:
  *  -remove the low level wrappers for execve/fork/vfork
  *   needed before task_pt_regs was invented. This saves a branch per call
+ *   and more importantly allows clean invocation of post-syscall ptrace hook
+ *
+ * vineetg: Feb 2011 (ptrace low level code fixes)
+ *  -traced syscall return code (r0) was not saved into pt_regs for restoring
+ *   into user reg-file when traded task rets to user space.
+ *  -syscalls needing arch-wrappers (mainly for passing sp as pt_regs)
+ *   were not invoking post-syscall trace hook (jumping directly into
+ *   ret_from_system_call)
  *
  * vineetg: Nov 2010:
  *  -Vector table jumps (@8 bytes) converted into branches (@4 bytes)
@@ -351,6 +359,50 @@ ARC_ENTRY EV_Extension
 	b   ret_from_exception
 ARC_EXIT EV_Extension
 
+;######################### System Call Tracing #########################
+
+tracesys:
+	; save EFA in case tracer wants the PC of traced task
+	; using ERET won't work since next-PC has already committed
+	lr  r12, [efa]
+	GET_CURR_TASK_FIELD_PTR   TASK_THREAD, r11
+	st  r12, [r11, THREAD_FAULT_ADDR]
+
+	; PRE Sys Call Ptrace hook
+	mov r0, sp			; pt_regs needed
+	bl  @syscall_trace_entry
+
+	; Tracing code now returns the syscall num (orig or modif)
+	mov r8, r0
+
+	; Do the Sys Call as we normally would.
+	; Validate the Sys Call number
+	cmp     r8,  NR_syscalls
+	mov.hi  r0, -ENOSYS
+	bhi     tracesys_exit
+
+	; Restore the sys-call args. Mere invocation of the hook abv could have
+	; clobbered them (since they are in scratch regs). The tracer could also
+	; have deliberately changed the syscall args: r0-r7
+	ld  r0, [sp, PT_r0]
+	ld  r1, [sp, PT_r1]
+	ld  r2, [sp, PT_r2]
+	ld  r3, [sp, PT_r3]
+	ld  r4, [sp, PT_r4]
+	ld  r5, [sp, PT_r5]
+	ld  r6, [sp, PT_r6]
+	ld  r7, [sp, PT_r7]
+	ld.as   r9, [sys_call_table, r8]
+	jl      [r9]        ; Entry into Sys Call Handler
+
+tracesys_exit:
+	st  r0, [sp, PT_r0]     ; sys call return value in pt_regs
+
+	;POST Sys Call Ptrace Hook
+	bl  @syscall_trace_exit
+	b   ret_from_exception ; NOT ret_from_system_call at is saves r0 which
+	; we'd done before calling post hook above
+
 ;################### Break Point TRAP ##########################
 
 	; ======= (5b) Trap is due to Break-Point =========
@@ -415,6 +467,11 @@ ARC_ENTRY EV_Trap
 
 	; Before doing anything, return from CPU Exception Mode
 	FAKE_RET_FROM_EXCPN r11
+
+	; If syscall tracing ongoing, invoke pre-pos-hooks
+	GET_CURR_THR_INFO_FLAGS   r10
+	btst r10, TIF_SYSCALL_TRACE
+	bnz tracesys  ; this never comes back
 
 	;============ This is normal System Call case ==========
 	; Sys-call num shd not exceed the total system calls avail
@@ -621,6 +678,10 @@ ARC_ENTRY sys_fork_wrapper
 	bl  @sys_fork
 	DISCARD_CALLEE_SAVED_USER
 
+	GET_CURR_THR_INFO_FLAGS   r10
+	btst r10, TIF_SYSCALL_TRACE
+	bnz  tracesys_exit
+
 	b ret_from_system_call
 ARC_EXIT sys_fork_wrapper
 
@@ -630,6 +691,10 @@ ARC_ENTRY sys_vfork_wrapper
 	SAVE_CALLEE_SAVED_USER
 	bl  @sys_vfork
 	DISCARD_CALLEE_SAVED_USER
+
+	GET_CURR_THR_INFO_FLAGS   r10
+	btst r10, TIF_SYSCALL_TRACE
+	bnz  tracesys_exit
 
 	b ret_from_system_call
 ARC_EXIT sys_vfork_wrapper
@@ -644,6 +709,10 @@ ARC_ENTRY sys_clone_wrapper
 	SAVE_CALLEE_SAVED_USER
 	bl  @sys_clone
 	DISCARD_CALLEE_SAVED_USER
+
+	GET_CURR_THR_INFO_FLAGS   r10
+	btst r10, TIF_SYSCALL_TRACE
+	bnz  tracesys_exit
 
 	b ret_from_system_call
 ARC_EXIT sys_clone_wrapper
