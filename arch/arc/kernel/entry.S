@@ -7,6 +7,10 @@
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
  *
+ * TBD:
+ *  -remove the low level wrappers for execve/fork/vfork
+ *   needed before task_pt_regs was invented. This saves a branch per call
+ *
  * vineetg: Nov 2010:
  *  -Vector table jumps (@8 bytes) converted into branches (@4 bytes)
  *  -To maintain the slot size of 8 bytes/vector, added nop, which is
@@ -575,3 +579,48 @@ ARC_ENTRY ret_from_fork
 	bl  @schedule_tail
 	b @ret_from_exception
 ARC_EXIT ret_from_fork
+
+;################### Special Sys Call Wrappers ##########################
+
+ARC_ENTRY sys_execve_wrapper
+	; copy pointer to pt_regs as a parameter
+	mov  r3, sp
+	bl  @sys_execve
+
+	b ret_from_system_call
+ARC_EXIT sys_execve_wrapper
+
+; TBD: call do_fork directly from here
+ARC_ENTRY sys_fork_wrapper
+	; copy pointer to pt_regs as a parameter
+	mov  r0, sp
+	SAVE_CALLEE_SAVED_USER
+	bl  @sys_fork
+	DISCARD_CALLEE_SAVED_USER
+
+	b ret_from_system_call
+ARC_EXIT sys_fork_wrapper
+
+ARC_ENTRY sys_vfork_wrapper
+	; copy pointer to pt_regs as a parameter
+	mov  r0, sp
+	SAVE_CALLEE_SAVED_USER
+	bl  @sys_vfork
+	DISCARD_CALLEE_SAVED_USER
+
+	b ret_from_system_call
+ARC_EXIT sys_vfork_wrapper
+
+ARC_ENTRY sys_clone_wrapper
+	; clone sys-call takes 2 mandatary args: @flags and @child-stack
+	; and it can take 3 var-args, depending on flags
+	; To keep sys_clone( ) signature constant, we assume all 5 args
+	; and set the helper @prtegs in next free reg
+	; this is cheap since our args are in regs, not on stack
+	mov r5, sp  ; pt_regs
+	SAVE_CALLEE_SAVED_USER
+	bl  @sys_clone
+	DISCARD_CALLEE_SAVED_USER
+
+	b ret_from_system_call
+ARC_EXIT sys_clone_wrapper
