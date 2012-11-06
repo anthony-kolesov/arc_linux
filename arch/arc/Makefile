@@ -47,6 +47,9 @@ endif
 disable_small_data := y
 cflags-$(disable_small_data)		+= -mno-sdata -fcall-used-gp
 
+# Low level event tracing with Metaware debugger assist needs symbol info
+cflags-$(CONFIG_ARC_DBG_EVENT_TIMELINE) += -g
+
 cflags-$(CONFIG_CPU_BIG_ENDIAN)		+= -mbig-endian
 ldflags-$(CONFIG_CPU_BIG_ENDIAN)	+= -EB
 

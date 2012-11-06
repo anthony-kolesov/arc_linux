@@ -56,6 +56,7 @@
 #include <asm/setup.h>
 #include <asm/mmu_context.h>
 #include <asm/tlb.h>
+#include <asm/event-log.h>
 
 /*			Need for ARC MMU v2
  *
@@ -190,6 +191,8 @@ noinline void local_flush_tlb_all(void)
 	unsigned long flags;
 	unsigned int entry;
 	struct cpuinfo_arc_mmu *mmu = &cpuinfo_arc700[smp_processor_id()].mmu;
+
+	take_snap(SNAP_TLB_FLUSH_ALL, 0, 0);
 
 	local_irq_save(flags);
 

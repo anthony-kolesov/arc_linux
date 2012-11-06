@@ -323,6 +323,13 @@ config ARC_DBG_TLB_PARANOIA
 	depends on ARC_DBG
 	default n
 
+config ARC_DBG_EVENT_TIMELINE
+	bool "Low level event capture"
+	depends on ARC_DBG
+	default n
+	help
+	  Capture low level events: IRQ/Trap/Exception
+
 config ARC_DBG_TLB_MISS_COUNT
 	bool "Profile TLB Misses"
 	default n

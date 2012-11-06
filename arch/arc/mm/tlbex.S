@@ -41,6 +41,7 @@
 #include <asm/entry.h>
 #include <asm/tlb.h>
 #include <asm/pgtable.h>
+#include <asm/event-log-asm.h>
 #include <asm/arcregs.h>
 #include <asm/cache.h>
 #include <asm/processor.h>
@@ -194,6 +195,9 @@ ex_saved_reg1:
 	st_s  r2, [r0, 8]
 	st_s  r3, [r0, 12]
 
+	; take a snapshot of upon entering FAST Path TLB Hdlr
+	TAKE_SNAP_ASM r0, r1, SNAP_EXCP_IN
+
 	; VERIFY if the ASID in MMU-PID Reg is same as
 	; one in Linux data structures
 
@@ -316,6 +320,9 @@ do_slow_path_pf:
 	; (stack switching / save the complete reg-file).
 	; That requires freeing up r9
 	EXCPN_PROLOG_FREEUP_REG r9
+
+	; take a snapshot of upon entering SLOW Path TLB Hdlr
+	TAKE_SNAP_ASM r8, r9, SNAP_DO_PF_ENTER
 
 	lr  r9, [erstatus]
 
