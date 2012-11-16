@@ -30,10 +30,10 @@ cflags-y	+= -a7 -fno-common -fno-builtin \
 atleast_gcc44 :=  $(call cc-ifversion, -gt, 0402, y)
 cflags-$(atleast_gcc44)			+= -fsection-anchors
 
-cflags-$(CONFIG_ARC_HAS_LLSC)		+= -mlock
+cflags-$(CONFIG_ARC_HAS_LLSC)		+=
 cflags-$(CONFIG_ARC_HAS_SWAPE)		+= -Xswap
 cflags-$(CONFIG_ARC_HAS_RTSC)		+= -Xrtsc
-cflags-$(CONFIG_ARC_DW2_UNWIND)		+= -fasynchronous-unwind-tables
+cflags-$(CONFIG_ARC_DW2_UNWIND)		+=
 
 # Generic build system already passes -Os, additonally uninline some code
 cflags-$(CONFIG_CC_OPTIMIZE_FOR_SIZE)	+= -DNONINLINE_MEMSET
@@ -46,19 +46,19 @@ endif
 # small data is default for elf32 tool-chain. If not usable, disable it
 # This also allows repurposing GP as scratch reg to gcc reg allocator
 disable_small_data := y
-cflags-$(disable_small_data)		+=-Hnosdata -fcall-used-gp
+cflags-$(disable_small_data)		+=-Hnosdata
 
 # Low level event tracing with Metaware debugger assist needs symbol info
 cflags-$(CONFIG_ARC_DBG_EVENT_TIMELINE) += -g
 
-cflags-$(CONFIG_CPU_BIG_ENDIAN)		+= -mbig-endian
+cflags-$(CONFIG_CPU_BIG_ENDIAN)		+= -EB
 ldflags-$(CONFIG_CPU_BIG_ENDIAN)	+= -EB
 
 # GNU ld doesn't accept --build-id w/o this workaround
 ldflags-y				+= -marclinux
 
 ARC_LIBGCC				:= -a7
-cflags-$(CONFIG_ARC_HAS_HW_MPY)		+= -multcost=16
+cflags-$(CONFIG_ARC_HAS_HW_MPY)		+=
 
 ifndef CONFIG_ARC_HAS_HW_MPY
 	cflags-y	+= -mno-mpy
