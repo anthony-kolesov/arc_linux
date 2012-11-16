@@ -31,7 +31,7 @@ define cmd_bounds
 endef
 
 # We use internal kbuild rules to avoid the "is up to date" message from make
-kernel/bounds.s: kernel/bounds.c FORCE
+kernel/bounds.s: kernel/bounds.c
 	$(Q)mkdir -p $(dir $@)
 	$(call if_changed_dep,cc_s_c)
 
@@ -77,7 +77,7 @@ endef
 
 # We use internal kbuild rules to avoid the "is up to date" message from make
 arch/$(SRCARCH)/kernel/asm-offsets.s: arch/$(SRCARCH)/kernel/asm-offsets.c \
-                                      $(obj)/$(bounds-file) FORCE
+                                      $(obj)/$(bounds-file)
 	$(Q)mkdir -p $(dir $@)
 	$(call if_changed_dep,cc_s_c)
 
