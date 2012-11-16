@@ -24,15 +24,15 @@ cflags-y	+= -Iarch/arc/plat-$(PLATFORM)/include
 LINUXINCLUDE	+=  -include ${src}/arch/arc/include/asm/defines.h \
 		    -include ${src}/arch/arc/include/asm/current.h
 
-cflags-y	+= -mA7 -fno-common -pipe -fno-builtin \
+cflags-y	+= -a7 -fno-common -fno-builtin \
 						-D__linux__
 
 atleast_gcc44 :=  $(call cc-ifversion, -gt, 0402, y)
 cflags-$(atleast_gcc44)			+= -fsection-anchors
 
 cflags-$(CONFIG_ARC_HAS_LLSC)		+= -mlock
-cflags-$(CONFIG_ARC_HAS_SWAPE)		+= -mswape
-cflags-$(CONFIG_ARC_HAS_RTSC)		+= -mrtsc
+cflags-$(CONFIG_ARC_HAS_SWAPE)		+= -Xswap
+cflags-$(CONFIG_ARC_HAS_RTSC)		+= -Xrtsc
 cflags-$(CONFIG_ARC_DW2_UNWIND)		+= -fasynchronous-unwind-tables
 
 # Generic build system already passes -Os, additonally uninline some code
@@ -46,7 +46,7 @@ endif
 # small data is default for elf32 tool-chain. If not usable, disable it
 # This also allows repurposing GP as scratch reg to gcc reg allocator
 disable_small_data := y
-cflags-$(disable_small_data)		+= -mno-sdata -fcall-used-gp
+cflags-$(disable_small_data)		+=-Hnosdata -fcall-used-gp
 
 # Low level event tracing with Metaware debugger assist needs symbol info
 cflags-$(CONFIG_ARC_DBG_EVENT_TIMELINE) += -g
@@ -57,7 +57,7 @@ ldflags-$(CONFIG_CPU_BIG_ENDIAN)	+= -EB
 # GNU ld doesn't accept --build-id w/o this workaround
 ldflags-y				+= -marclinux
 
-ARC_LIBGCC				:= -mA7
+ARC_LIBGCC				:= -a7
 cflags-$(CONFIG_ARC_HAS_HW_MPY)		+= -multcost=16
 
 ifndef CONFIG_ARC_HAS_HW_MPY
@@ -69,7 +69,7 @@ ifndef CONFIG_ARC_HAS_HW_MPY
 # With gcc 4.4.7, -mno-mpy is enough to make any other related adjustments,
 # e.g. increased cost of MPY. With gcc 4.2.1 this had to be explicitly hinted
 
-	ARC_LIBGCC		:= -marc600
+	ARC_LIBGCC		:= -a6
 	ifneq ($(atleast_gcc44),y)
 		cflags-y	+= -multcost=30
 	endif
