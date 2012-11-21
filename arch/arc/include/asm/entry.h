@@ -221,13 +221,13 @@
  * which grows upwards towards thread_info
  *------------------------------------------------------------*/
 
-.macro GET_TSK_STACK_BASE tsk, out
+.macro GET_TSK_STACK_BASE, tsk, out
 
 	/* Get task->thread_info (this is essentially start of a PAGE) */
-	ld  \out, [\tsk, TASK_THREAD_INFO]
+	ld  \&out, [\&tsk, TASK_THREAD_INFO]
 
 	/* Go to end of page where stack begins (grows upwards) */
-	add2 \out, \out, (THREAD_SIZE - 4)/4   /* one word GUTTER */
+	add2 \&out, \&out, (THREAD_SIZE - 4)/4   /* one word GUTTER */
 
 .endm
 
@@ -327,21 +327,21 @@
  * Look at EV_ProtV to see how this is actually used
  *-------------------------------------------------------------*/
 
-.macro FAKE_RET_FROM_EXCPN  reg
+.macro FAKE_RET_FROM_EXCPN,  reg
 
-	ld  \reg, [sp, PT_status32]
-	bic  \reg, \reg, (STATUS_U_MASK|STATUS_DE_MASK)
-	bset \reg, \reg, STATUS_L_BIT
-	sr  \reg, [erstatus]
-	mov \reg, 55f
-	sr  \reg, [eret]
+	ld  \&reg, [sp, PT_status32]
+	bic  \&reg, \&reg, (STATUS_U_MASK|STATUS_DE_MASK)
+	bset \&reg, \&reg, STATUS_L_BIT
+	sr  \&reg, [erstatus]
+	mov \&reg, 55f
+	sr  \&reg, [eret]
 
 	rtie
 55:
 .endm
 
-.macro GET_CURR_THR_INFO_FROM_SP  reg
-	and \reg, sp, ~(THREAD_SIZE - 1)
+.macro GET_CURR_THR_INFO_FROM_SP,  reg
+	and \&reg, sp, ~(THREAD_SIZE - 1)
 .endm
 
 /*--------------------------------------------------------------
@@ -352,19 +352,19 @@
  * Before saving the full regfile - this reg is restored back, only
  * to be saved again on kernel mode stack, as part of ptregs.
  *-------------------------------------------------------------*/
-.macro EXCPN_PROLOG_FREEUP_REG	reg
+.macro EXCPN_PROLOG_FREEUP_REG,	reg
 #ifdef CONFIG_SMP
-	sr  \reg, [ARC_REG_SCRATCH_DATA0]
+	sr  \&reg, [ARC_REG_SCRATCH_DATA0]
 #else
-	st  \reg, [@ex_saved_reg1]
+	st  \&reg, [@ex_saved_reg1]
 #endif
 .endm
 
-.macro EXCPN_PROLOG_RESTORE_REG	reg
+.macro EXCPN_PROLOG_RESTORE_REG,	reg
 #ifdef CONFIG_SMP
-	lr  \reg, [ARC_REG_SCRATCH_DATA0]
+	lr  \&reg, [ARC_REG_SCRATCH_DATA0]
 #else
-	ld  \reg, [@ex_saved_reg1]
+	ld  \&reg, [@ex_saved_reg1]
 #endif
 .endm
 
@@ -377,7 +377,7 @@
  * Note that syscalls are implemented via TRAP which is also a exception
  * from CPU's point of view
  *-------------------------------------------------------------*/
-.macro SAVE_ALL_EXCEPTION   marker
+.macro SAVE_ALL_EXCEPTION,   marker
 
 	/* Restore r9 used to code the early prologue */
 	EXCPN_PROLOG_RESTORE_REG  r9
@@ -389,7 +389,7 @@
 	 * Exceptions -> NR_SYSCALLS + 1
 	 * Break-point-> NR_SYSCALLS + 2
 	 */
-	st      \marker, [sp, 8]
+	st      \&marker, [sp, 8]
 	st      r0, [sp, 4]    /* orig_r0, needed only for sys calls */
 	SAVE_CALLER_SAVED
 	st.a    r26, [sp, -4]   /* gp */
@@ -604,10 +604,10 @@
 
 
 /* Get CPU-ID of this core */
-.macro  GET_CPU_ID  reg
-	lr  \reg, [identity]
-	lsr \reg, \reg, 8
-	bmsk \reg, \reg, 7
+.macro  GET_CPU_ID,  reg
+	lr  \&reg, [identity]
+	lsr \&reg, \&reg, 8
+	bmsk \&reg, \&reg, 7
 .endm
 
 #ifdef CONFIG_SMP
@@ -617,9 +617,9 @@
  * 1. Determine curr CPU id.
  * 2. Use it to index into _current_task[ ]
  */
-.macro  GET_CURR_TASK_ON_CPU   reg
-	GET_CPU_ID  \reg
-	ld.as  \reg, [@_current_task, \reg]
+.macro  GET_CURR_TASK_ON_CPU,   reg
+	GET_CPU_ID  \&reg
+	ld.as  \&reg, [@_current_task, \&reg]
 .endm
 
 /*-------------------------------------------------
@@ -632,12 +632,12 @@
  * while   LD can take s9 (4 byte insn) or LIMM (8 byte insn)
  */
 
-.macro  SET_CURR_TASK_ON_CPU    tsk, tmp
-	GET_CPU_ID  \tmp
-	add2 \tmp, @_current_task, \tmp
-	st   \tsk, [\tmp]
+.macro  SET_CURR_TASK_ON_CPU,    tsk, tmp
+	GET_CPU_ID  \&tmp
+	add2 \&tmp, @_current_task, \&tmp
+	st   \&tsk, [\&tmp]
 #ifdef CONFIG_ARC_CURR_IN_REG
-	mov r25, \tsk
+	mov r25, \&tsk
 #endif
 
 .endm
@@ -645,14 +645,14 @@
 
 #else   /* Uniprocessor implementation of macros */
 
-.macro  GET_CURR_TASK_ON_CPU    reg
-	ld  \reg, [@_current_task]
+.macro  GET_CURR_TASK_ON_CPU,    reg
+	ld  \&reg, [@_current_task]
 .endm
 
-.macro  SET_CURR_TASK_ON_CPU    tsk, tmp
-	st  \tsk, [@_current_task]
+.macro  SET_CURR_TASK_ON_CPU,    tsk, tmp
+	st  \&tsk, [@_current_task]
 #ifdef CONFIG_ARC_CURR_IN_REG
-	mov r25, \tsk
+	mov r25, \&tsk
 #endif
 .endm
 
@@ -665,15 +665,15 @@
 
 #ifdef CONFIG_ARC_CURR_IN_REG
 
-.macro GET_CURR_TASK_FIELD_PTR  off,  reg
-	add \reg, r25, \off
+.macro GET_CURR_TASK_FIELD_PTR,  off,  reg
+	add \&reg, r25, \&off
 .endm
 
 #else
 
-.macro GET_CURR_TASK_FIELD_PTR  off,  reg
-	GET_CURR_TASK_ON_CPU  \reg
-	add \reg, \reg, \off
+.macro GET_CURR_TASK_FIELD_PTR,  off,  reg
+	GET_CURR_TASK_ON_CPU  \&reg
+	add \&reg, \&reg, \&off
 .endm
 
 #endif	/* CONFIG_ARC_CURR_IN_REG */

@@ -14,25 +14,25 @@
 /* Can't use the ENTRY macro in linux/linkage.h
  * gas considers ';' as comment vs. newline
  */
-.macro ARC_ENTRY name
-	.global \name
+.macro ARC_ENTRY, name
+	.global \&name
 	.align 4
-	\name:
+	\&name:
 .endm
 
-.macro ARC_EXIT name
+.macro ARC_EXIT, name
 #define ASM_PREV_SYM_ADDR(name)  .-##name
-	.size \ name, ASM_PREV_SYM_ADDR(\name)
+	.size \&name, ASM_PREV_SYM_ADDR(\&name)
 .endm
 
 /* annotation for data we want in DCCM - if enabled in .config */
-.macro ARCFP_DATA nm
+.macro ARCFP_DATA, nm
 #ifdef CONFIG_ARC_HAS_DCCM
 	.section .data.arcfp
 #else
 	.section .data
 #endif
-	.global \nm
+	.global \&nm
 .endm
 
 /* annotation for data we want in DCCM - if enabled in .config */
