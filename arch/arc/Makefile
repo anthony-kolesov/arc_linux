@@ -30,8 +30,8 @@ atleast_gcc44 :=  $(call cc-ifversion, -gt, 0402, y)
 cflags-$(atleast_gcc44)			+= -fsection-anchors
 
 cflags-$(CONFIG_ARC_HAS_LLSC)		+=
-cflags-$(CONFIG_ARC_HAS_SWAPE)		+= -Xswap
-cflags-$(CONFIG_ARC_HAS_RTSC)		+= -Xrtsc
+cflags-$(CONFIG_ARC_HAS_SWAPE)		+= -Xswap -core4
+cflags-$(CONFIG_ARC_HAS_RTSC)		+= -Xrtsc -core4
 cflags-$(CONFIG_ARC_DW2_UNWIND)		+=
 
 # Generic build system already passes -Os, additonally uninline some code
