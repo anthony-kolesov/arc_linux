@@ -52,7 +52,7 @@ __arc_copy_from_user(void *to, const void __user *from, unsigned long n)
 		unsigned char tmp;
 
 		__asm__ __volatile__ (
-		"	mov.f   lp_count, %0		\n"
+		"	mov.f   %%lp_count, %0		\n"
 		"	lpnz 2f				\n"
 		"1:	ldb.ab  %1, [%3, 1]		\n"
 		"	stb.ab  %1, [%2, 1]		\n"
