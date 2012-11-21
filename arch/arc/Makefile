@@ -24,8 +24,7 @@ cflags-y	+= -Iarch/arc/plat-$(PLATFORM)/include
 LINUXINCLUDE	+=  -include ${src}/arch/arc/include/asm/defines.h \
 		    -include ${src}/arch/arc/include/asm/current.h
 
-cflags-y	+= -a7 -fno-common -fno-builtin \
-						-D__linux__
+cflags-y	+= -a7 -fno-common -fno-builtin -fno-short-enums -D__linux__
 
 atleast_gcc44 :=  $(call cc-ifversion, -gt, 0402, y)
 cflags-$(atleast_gcc44)			+= -fsection-anchors
