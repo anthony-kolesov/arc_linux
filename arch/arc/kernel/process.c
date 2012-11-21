@@ -75,9 +75,9 @@ void cpu_idle(void)
 void kernel_thread_helper(void)
 {
 	__asm__ __volatile__(
-		"mov   r0, r2	\n\t"
-		"mov   r1, r3	\n\t"
-		"j     [r1]	\n\t");
+		"mov   %r0, %r2	\n\t"
+		"mov   %r1, %r3	\n\t"
+		"j     [%r1]	\n\t");
 }
 
 int kernel_thread(int (*fn) (void *), void *arg, unsigned long flags)
@@ -364,7 +364,7 @@ int kernel_execve(const char *filename, const char *const argv[],
 	register int filenm_n_ret asm("r0") = (int)filename;
 
 	__asm__ __volatile__(
-		"mov   r8, %1	\n\t"
+		"mov   %r8, %1	\n\t"
 		"trap0		\n\t"
 		: "+r"(filenm_n_ret)
 		: "i"(__NR_execve), "r"(arg2), "r"(arg3)
