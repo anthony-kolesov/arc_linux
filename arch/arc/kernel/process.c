@@ -364,7 +364,7 @@ int kernel_execve(const char *filename, const char *const argv[],
 	register int filenm_n_ret asm("r0") = (int)filename;
 
 	__asm__ __volatile__(
-		"mov   %r8, %1	\n\t"
+		"mov   %%r8, %1	\n\t"
 		"trap0		\n\t"
 		: "+r"(filenm_n_ret)
 		: "i"(__NR_execve), "r"(arg2), "r"(arg3)
