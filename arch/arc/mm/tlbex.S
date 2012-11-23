@@ -37,7 +37,7 @@
  * Rahul Trivedi, Amit Bhor: Codito Technologies 2004
  */
 
-	.cpu A7
+;	.cpu A7
 
 #include <linux/linkage.h>
 #include <asm/entry.h>
@@ -58,11 +58,11 @@ ARCFP_DATA ex_saved_reg1
 #ifdef CONFIG_SMP
 	.size   ex_saved_reg1, (CONFIG_NR_CPUS << L1_CACHE_SHIFT)
 ex_saved_reg1:
-	.zero (CONFIG_NR_CPUS << L1_CACHE_SHIFT)
+	.block (CONFIG_NR_CPUS << L1_CACHE_SHIFT)
 #else
 	.size   ex_saved_reg1, 16
 ex_saved_reg1:
-	.zero 16
+	.block 16
 #endif
 
 ;============================================================================

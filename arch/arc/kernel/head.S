@@ -17,7 +17,7 @@
 #include <linux/linkage.h>
 #include <asm/arcregs.h>
 
-	.cpu A7
+;	.cpu A7
 
 	.section .init.text, "ax",@progbits
 	.type stext, @function
