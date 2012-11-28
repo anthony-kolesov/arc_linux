@@ -76,6 +76,9 @@ endif
 
 LIBGCC	:= $(shell $(CC) $(ARC_LIBGCC) $(cflags-y) --print-libgcc-file-name)
 
+# Don't print copright message and create archive even if there are no input files.
+KBUILD_ARFLAGS:=fq
+
 # Modules with short calls might break for calls into builtin-kernel
 KBUILD_CFLAGS_MODULE	+= -mlong-calls
 

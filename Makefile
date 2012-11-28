@@ -632,7 +632,7 @@ KBUILD_CFLAGS += $(call cc-disable-warning, pointer-sign)
 #KBUILD_CFLAGS   += $(call cc-option,-fconserve-stack)
 
 # use the deterministic mode of AR if available
-KBUILD_ARFLAGS := $(call ar-option,D)
+KBUILD_ARFLAGS += $(call ar-option,D)
 
 # check for 'asm goto'
 ifeq ($(shell $(CONFIG_SHELL) $(srctree)/scripts/gcc-goto.sh $(CC)), y)
