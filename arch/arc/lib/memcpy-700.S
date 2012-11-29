@@ -46,7 +46,7 @@ ARC_ENTRY memcpy
 	j_s.d	[blink]
 	st	r12,[r5,0]
 
-	.balign	4
+	.align	4
 .Lcopy_bytewise:
 	jcs	[blink]
 	ldb_s	r12,[r1,0]

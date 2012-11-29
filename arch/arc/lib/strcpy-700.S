@@ -32,7 +32,7 @@ ARC_ENTRY strcpy
 	tst_s	r2,r12
 	bne	r3z
 	mov_s	r4,r3
-	.balign 4
+	.align 4
 loop:
 	ld.a	r3,[r1,4]
 	st.ab	r4,[r10,4]
@@ -59,7 +59,7 @@ r3z:	lsr.f	r1,r3,24
 	stb.ab	r1,[r10,1]
 	j_s	[blink]
 
-	.balign	4
+	.align	4
 charloop:
 	ldb.ab	r3,[r1,1]
 

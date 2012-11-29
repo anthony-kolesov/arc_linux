@@ -44,7 +44,7 @@ ARC_ENTRY strcmp
 	j_s.d	[blink]
 	bset.lo	r0,r0,31
 
-	.balign	4
+	.align	4
 #ifdef __LITTLE_ENDIAN__
 .Lfound0:
 	xor	r0,r2,r3	; mask for difference
@@ -67,7 +67,7 @@ ARC_ENTRY strcmp
 	   get a low estimate for r2, because in any affected bytes
 	   we already have 0x00 or 0x01, which will remain unchanged
 	   when bit 7 is cleared.  */
-	.balign	4
+	.align	4
 .Lfound0:
 	lsr	r0,r4,8
 	lsr_s	r1,r2
@@ -83,7 +83,7 @@ ARC_ENTRY strcmp
 	bset.lo	r0,r0,31
 #endif /* ENDIAN */
 
-	.balign	4
+	.align	4
 .Lcharloop:
 	ldb.ab	r2,[r0,1]
 	ldb.ab	r3,[r1,1]

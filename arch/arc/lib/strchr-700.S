@@ -73,7 +73,7 @@ ARC_ENTRY strchr
 	j.d	[blink]
 	sub_s	r0,r0,r2
 
-	.balign	4
+	.align	4
 .Lfound0_ua:
 	mov	r3,r7
 .Lfound0:

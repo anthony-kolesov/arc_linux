@@ -39,7 +39,7 @@ ARC_ENTRY memset
 .Loop_end:
 	j_s	[blink]
 
-	.balign	4
+	.align	4
 .Ltiny:
 	mov.f	lp_count,r2
 	lpne	.Ltiny_end
