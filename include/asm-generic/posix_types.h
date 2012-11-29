@@ -150,6 +150,8 @@ static inline void __FD_ZERO(__kernel_fd_set *__p)
 			__tmp[ 0] = 0; __tmp[ 1] = 0;
 			__tmp[ 2] = 0; __tmp[ 3] = 0;
 			return;
+		default:
+			break;
 		}
 	}
 	__i = __FDSET_LONGS;
