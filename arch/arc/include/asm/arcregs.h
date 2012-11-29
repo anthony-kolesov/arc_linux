@@ -191,11 +191,11 @@
 #if 1
 
 #define read_aux_reg(reg)			\
-		__builtin_arc_lr(reg)
+		_arc_lr(reg)
 
 /* gcc builtin sr needs reg param to be long immediate */
 #define write_aux_reg(reg_immed, val)		\
-		__builtin_arc_sr((unsigned int)val, reg_immed)
+		_arc_sr((unsigned int)val, reg_immed)
 
 #else
 
