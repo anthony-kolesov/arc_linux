@@ -54,7 +54,10 @@ cflags-$(CONFIG_CPU_BIG_ENDIAN)		+= -EB
 ldflags-$(CONFIG_CPU_BIG_ENDIAN)	+= -EB
 
 # GNU ld doesn't accept --build-id w/o this workaround
+# [[-marclinux]]
 ldflags-y				+=
+# Don't stop linking if there a multiple definitions of symbols.
+ldflags-y += -z dup
 
 ARC_LIBGCC				:= -a7
 cflags-$(CONFIG_ARC_HAS_HW_MPY)		+=
