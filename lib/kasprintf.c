@@ -15,9 +15,9 @@ char *kvasprintf(gfp_t gfp, const char *fmt, va_list ap)
 {
 	unsigned int len;
 	char *p;
-	va_list aq;
+	va_list aq = ap;
 
-	va_copy(aq, ap);
+	//va_copy(aq, ap);
 	len = vsnprintf(NULL, 0, fmt, aq);
 	va_end(aq);
 
