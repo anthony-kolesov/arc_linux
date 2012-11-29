@@ -1,0 +1,27 @@
+#!/bin/bash
+
+declare -a OPTS
+CNT=0
+
+OPTS[$CNT]=$1
+CNT=$(($CNT+1))
+while shift; do
+	case $1 in
+		--start-group)
+			OPTS[$CNT]=-B
+			CNT=$(($CNT+1))
+			OPTS[$CNT]=grouplib
+			CNT=$(($CNT+1))
+			;;
+		--end-group)
+			;;
+		*)
+			OPTS[$CNT]=$1
+			CNT=$(($CNT+1))
+			;;
+	esac
+done
+
+ldac ${OPTS[@]}
+
+
