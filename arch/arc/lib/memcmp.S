@@ -62,7 +62,7 @@ ARC_ENTRY memcmp
 	lsr_s	r12,r12,1
 	j_s.d	[blink]
 	sub	r0,r2,r12
-	.balign	4
+	.align	4
 .Lodd:
 	xor	r0,WORD2,r12
 	sub_s	r1,r0,1
@@ -94,7 +94,7 @@ ARC_ENTRY memcmp
 	j_s.d	[blink]
 	bset.cs	r0,r0,31
 #endif /* ENDIAN */
-	.balign	4
+	.align	4
 .Lbytewise:
 	breq	r2,0,.Lnil
 	ldb	r4,[r0,0]
